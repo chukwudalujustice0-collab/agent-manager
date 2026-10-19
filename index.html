@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wema Super Agent POS Manager</title>
+    <meta name="description" content="Terminal inventory, agent management, sales tracking, and finance dashboard for Wema Super Agent POS operations." />
+    <meta property="og:title" content="Wema Super Agent POS Manager" />
+    <meta property="og:description" content="Terminal inventory, agent management, sales tracking, and finance dashboard for Wema Super Agent POS operations." />
+    <meta property="og:image" content="https://bolt.new/static/og_default.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://bolt.new/static/og_default.png" />
+    <script>
+      // GitHub Pages SPA fallback: detect the base path from the first bundled
+      // module script so this works whether served from root or a subpath.
+      (function () {
+        var path = window.location.pathname.replace(/\/+$/, '');
+        var here = path || '/';
+        // Only redirect when served from a subpath (GitHub Pages), not root.
+        if (here === '/' || here === '/index.html' || here === '/404.html') return;
+        try {
+          sessionStorage.setItem('gh-pages:redirect', here);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./src/main.tsx"></script>
+  </body>
+</html>

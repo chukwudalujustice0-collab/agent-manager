@@ -1,0 +1,8 @@
+{
+  "name": "Wema Super Agent POS Manager",
+  "description": "Terminal inventory, agent management, sales tracking, and finance dashboard for Wema Super Agent POS operations.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
