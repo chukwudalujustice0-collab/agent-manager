@@ -211,23 +211,25 @@ export function AuthScreen() {
             </div>
           )}
 
-          <div className="mt-5 text-center">
+          <div className="mt-6 border-t border-slate-100 pt-4 text-center">
             {isSignup ? (
-              <p className="text-sm text-purple-100">
+              <p className="text-sm text-slate-600">
                 Already have an account?{' '}
                 <button
+                  type="button"
                   onClick={() => { setMode('signin'); setError(null); setInfo(null); }}
-                  className="font-semibold text-white underline underline-offset-2 hover:text-white/90"
+                  className="font-semibold text-purple-700 underline underline-offset-2 hover:text-purple-900 focus:outline-none"
                 >
                   Sign in
                 </button>
               </p>
             ) : (
-              <p className="text-sm text-purple-100">
+              <p className="text-sm text-slate-600">
                 Don't have an account?{' '}
                 <button
+                  type="button"
                   onClick={() => { setMode('signup'); setError(null); setInfo(null); }}
-                  className="font-semibold text-white underline underline-offset-2 hover:text-white/90"
+                  className="font-semibold text-purple-700 underline underline-offset-2 hover:text-purple-900 focus:outline-none"
                 >
                   Create account
                 </button>
@@ -236,7 +238,7 @@ export function AuthScreen() {
           </div>
 
           {!isSignup && (
-            <p className="mt-3 max-w-sm text-center text-xs text-purple-200/70">
+            <p className="mt-3 text-center text-xs text-slate-500">
               Registration requires an invitation pass key from an authorized administrator.
             </p>
           )}
