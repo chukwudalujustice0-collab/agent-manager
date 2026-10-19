@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase, type Profile } from '@/lib/supabase';
+import { supabase, subscribeSupabaseConfig, type Profile } from '@/lib/supabase';
 
 interface AuthContextValue {
   session: Session | null;
@@ -46,14 +46,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadProfile(session.user.id).finally(() => mounted && setLoading(false));
-      } else {
-        setLoading(false);
+    const checkSession = () => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!mounted) return;
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          loadProfile(session.user.id).finally(() => mounted && setLoading(false));
+        } else {
+          setLoading(false);
+        }
+      });
+    };
+
+    checkSession();
+
+    const unsubConfig = subscribeSupabaseConfig((configured) => {
+      if (configured && mounted) {
+        checkSession();
       }
     });
 
@@ -71,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mounted = false;
+      unsubConfig();
       listener.subscription.unsubscribe();
     };
   }, []);

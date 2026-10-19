@@ -1,12 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, subscribeSupabaseConfig } from '@/lib/supabase';
 import { Button, Input, ErrorBanner } from '@/components/ui';
 import { CreditCard, Eye, EyeOff, UserPlus, LogIn, KeyRound, BadgeCheck, Loader2, CheckCircle2 } from 'lucide-react';
 
 export function AuthScreen() {
   const { signIn, signUp } = useAuth();
+  const [configured, setConfigured] = useState(isSupabaseConfigured);
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+
+  useEffect(() => {
+    setConfigured(isSupabaseConfigured);
+    return subscribeSupabaseConfig((val) => {
+      setConfigured(val);
+    });
+  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -110,12 +118,15 @@ export function AuthScreen() {
             </div>
           </div>
 
-          {!isSupabaseConfigured && (
+          {!configured && (
             <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
               <p className="font-semibold">Supabase environment variables not configured.</p>
               <p className="mt-1">
-                Please set <code className="rounded bg-amber-100 px-1 py-0.5 font-mono">VITE_SUPABASE_URL</code> and{' '}
-                <code className="rounded bg-amber-100 px-1 py-0.5 font-mono">VITE_SUPABASE_ANON_KEY</code> in your environment variables to connect your Supabase project.
+                Please set <code className="rounded bg-amber-100 px-1 py-0.5 font-mono">VITE_SUPABASE_URL</code> (or <code className="rounded bg-amber-100 px-1 py-0.5 font-mono">SUPABASE_URL</code>) and{' '}
+                <code className="rounded bg-amber-100 px-1 py-0.5 font-mono">VITE_SUPABASE_ANON_KEY</code> (or <code className="rounded bg-amber-100 px-1 py-0.5 font-mono">SUPABASE_ANON_KEY</code>) in your environment variables.
+              </p>
+              <p className="mt-1 text-amber-700">
+                Note: In Cloudflare Pages, after configuring environment variables under Settings, remember to trigger a new deployment so Vite can embed the values.
               </p>
             </div>
           )}

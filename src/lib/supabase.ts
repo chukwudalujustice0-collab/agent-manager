@@ -1,19 +1,149 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string) || 'https://placeholder.supabase.co';
-const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || 'placeholder-anon-key';
+declare global {
+  interface Window {
+    __ENV__?: {
+      VITE_SUPABASE_URL?: string;
+      SUPABASE_URL?: string;
+      VITE_SUPABASE_ANON_KEY?: string;
+      SUPABASE_ANON_KEY?: string;
+    };
+  }
+}
 
-export const isSupabaseConfigured = Boolean(
-  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+function resolveInitialEnv() {
+  const url =
+    (typeof import.meta !== 'undefined' &&
+      ((import.meta.env.VITE_SUPABASE_URL as string) ||
+        (import.meta.env.SUPABASE_URL as string))) ||
+    (typeof window !== 'undefined' &&
+      (window.__ENV__?.VITE_SUPABASE_URL || window.__ENV__?.SUPABASE_URL)) ||
+    '';
+
+  const key =
+    (typeof import.meta !== 'undefined' &&
+      ((import.meta.env.VITE_SUPABASE_ANON_KEY as string) ||
+        (import.meta.env.SUPABASE_ANON_KEY as string))) ||
+    (typeof window !== 'undefined' &&
+      (window.__ENV__?.VITE_SUPABASE_ANON_KEY || window.__ENV__?.SUPABASE_ANON_KEY)) ||
+    '';
+
+  return {
+    url: url.trim(),
+    key: key.trim(),
+  };
+}
+
+const initialEnv = resolveInitialEnv();
+let currentUrl = initialEnv.url || 'https://placeholder.supabase.co';
+let currentKey = initialEnv.key || 'placeholder-anon-key';
+
+export let isSupabaseConfigured = Boolean(
+  initialEnv.url &&
+    initialEnv.key &&
+    !initialEnv.url.includes('placeholder.supabase.co') &&
+    initialEnv.key !== 'placeholder-anon-key'
 );
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+type ConfigListener = (configured: boolean) => void;
+const configListeners = new Set<ConfigListener>();
+
+export function subscribeSupabaseConfig(listener: ConfigListener): () => void {
+  configListeners.add(listener);
+  return () => {
+    configListeners.delete(listener);
+  };
+}
+
+function notifyConfigListeners() {
+  configListeners.forEach((fn) => {
+    try {
+      fn(isSupabaseConfigured);
+    } catch (e) {
+      console.error('Error in Supabase config listener:', e);
+    }
+  });
+}
+
+let activeClient: SupabaseClient = createClient(currentUrl, currentKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
 });
+
+// Proxy delegator so any existing imports of `supabase` automatically forward
+// to activeClient, even if activeClient is re-initialized via runtime config.
+export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    const val = (activeClient as unknown as Record<string | symbol, unknown>)[prop];
+    if (typeof val === 'function') {
+      return (val as (...args: unknown[]) => unknown).bind(activeClient);
+    }
+    return val;
+  },
+});
+
+export async function initializeRuntimeConfig(): Promise<boolean> {
+  if (isSupabaseConfigured) return true;
+
+  try {
+    const res = await fetch('/api/config');
+    if (res.ok) {
+      const data = (await res.json()) as {
+        supabaseUrl?: string;
+        supabaseAnonKey?: string;
+        VITE_SUPABASE_URL?: string;
+        VITE_SUPABASE_ANON_KEY?: string;
+        SUPABASE_URL?: string;
+        SUPABASE_ANON_KEY?: string;
+      };
+
+      const newUrl = (
+        data.supabaseUrl ||
+        data.VITE_SUPABASE_URL ||
+        data.SUPABASE_URL ||
+        ''
+      ).trim();
+      const newKey = (
+        data.supabaseAnonKey ||
+        data.VITE_SUPABASE_ANON_KEY ||
+        data.SUPABASE_ANON_KEY ||
+        ''
+      ).trim();
+
+      if (
+        newUrl &&
+        newKey &&
+        !newUrl.includes('placeholder.supabase.co') &&
+        newKey !== 'placeholder-anon-key'
+      ) {
+        currentUrl = newUrl;
+        currentKey = newKey;
+        activeClient = createClient(newUrl, newKey, {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+          },
+        });
+        isSupabaseConfigured = true;
+        notifyConfigListeners();
+        return true;
+      }
+    }
+  } catch {
+    // /api/config is optional; will fail silently if hosted on static without Cloudflare Functions
+  }
+
+  return isSupabaseConfigured;
+}
+
+// Automatically initiate runtime discovery on browser startup if not yet configured
+if (typeof window !== 'undefined' && !isSupabaseConfigured) {
+  initializeRuntimeConfig();
+}
 
 export type UserRole = 'owner' | 'inventory_manager' | 'sales_officer' | 'field_agent';
 
